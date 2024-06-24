@@ -15,7 +15,7 @@ namespace BattleshipGame
         private const byte Size = 10;
         private const char EmptyFieldSign = '.';
         private readonly Random random = new();
-        private readonly HashSet<(int, int)> shipFields = new();
+        private readonly List<Ship> ships = new();
 
         public Board() 
         {
@@ -66,6 +66,21 @@ namespace BattleshipGame
             return boardStringBuilder.ToString();
         }
 
+        private bool FieldIsTaken((int, int) field)
+        {
+            foreach (var ship in ships)
+            {
+                foreach (var takenField in ship.GetTakenFields())
+                {
+                    if (takenField == field)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public void CreateShips()
         {
             // TODO: Make private
@@ -97,7 +112,7 @@ namespace BattleshipGame
                 int row = startRow + (isVertical ? i : 0);
                 int column = startColumn + (!isVertical ? i : 0);
 
-                if (shipFields.Contains((row, column)) || !ShipSurroundingFieldsAreEmpty(row, column))
+                if (FieldIsTaken((row, column)) || !ShipSurroundingFieldsAreEmpty(row, column))
                 {
                     return false;
                 }
@@ -116,7 +131,7 @@ namespace BattleshipGame
 
                     if (surroundingRow >= 0 && surroundingRow < Size && surroundingColumn >= 0 && surroundingColumn < Size)
                     {
-                        if (shipFields.Contains((surroundingRow, surroundingColumn)))
+                        if (FieldIsTaken((surroundingRow, surroundingColumn)))
                         {
                             return false;
                         }
@@ -128,14 +143,32 @@ namespace BattleshipGame
 
         private void PlaceShip(int startRow, int startColumn, int shipLength, bool isVertical)
         {
+            var shipFields = new HashSet<(int, int)>();
             for (int i = 0; i < shipLength; i++)
             {
                 int row = startRow + (isVertical ? i : 0);
                 int column = startColumn + (!isVertical ? i : 0);
 
                 shipFields.Add((row, column));
-                board[row, column] = 'S';
+                board[row, column] = 'S'; // TODO: Delete after tests.
             }
+            var ship = new Ship(shipLength, shipFields);
+            ships.Add(ship);
+        }
+
+        private Ship? GetShipByField((int, int) field)
+        {
+            foreach (var ship in ships)
+            {
+                foreach (var shipField in ship.GetTakenFields())
+                {
+                    if (shipField ==  field)
+                    {
+                        return ship;
+                    }
+                }
+            }
+            return null;
         }
 
         public bool Shot(char column, int row) 
@@ -143,14 +176,35 @@ namespace BattleshipGame
             int columnIndex = column - 65;
             int rowIndex = row - 1;
 
-            if (board[rowIndex, columnIndex] != EmptyFieldSign)
+            if (board[rowIndex, columnIndex] != EmptyFieldSign && board[rowIndex, columnIndex] != 'S') // TODO: After tests delete second condition.
             {
                 Console.WriteLine("This field has been selected before!");
                 return false;
             }
 
-            // TODO: Check if there is a ship and if it has been sunk.
-            board[rowIndex, columnIndex] = (char)ShotSign.Hit;
+            if (FieldIsTaken((rowIndex, columnIndex)))
+            {
+                var ship = GetShipByField((rowIndex, columnIndex));
+                if (ship == null) { return false; }
+
+                ship.Hit((rowIndex, columnIndex));
+
+                if (ship.IsSunk())
+                {
+                    foreach (var shipField in ship.GetTakenFields())
+                    {
+                        board[shipField.Item1, shipField.Item2] = (char)ShotSign.Sunk;
+                    }
+                }
+                else
+                {
+                    board[rowIndex, columnIndex] = (char)ShotSign.Hit;
+                }
+            }
+            else
+            {
+                board[rowIndex, columnIndex] = (char)ShotSign.Miss;
+            }
             return true;
         }
     }
