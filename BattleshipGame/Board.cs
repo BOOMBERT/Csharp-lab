@@ -12,22 +12,43 @@ namespace BattleshipGame
     internal class Board
     {
         private readonly char[,] board;
-        private const byte Size = 10;
+        private readonly int rows;
+        private readonly int columns;
+
         private const char EmptyFieldSign = '.';
         private readonly Random random = new();
         private readonly List<Ship> ships = new();
 
-        public Board() 
+        public Board(Dictionary<int, int> lengthAndNumberOfShips, int rows = 10, int columns = 10) 
         {
-            board = new char[Size, Size];
+            int longestShipValue = lengthAndNumberOfShips.Keys.Max();
+
+            if (rows >= longestShipValue && columns >= longestShipValue)
+            {
+                this.rows = rows;
+                if (columns <= 26)
+                {
+                    this.columns = columns;
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException("Too many columns!");
+                }
+            }
+            else
+            {
+                throw new ArgumentException($"Expects numbers greater than or equal to {longestShipValue}!");
+            }
+            board = new char[rows, columns];
             Initialize();
+            CreateShips(lengthAndNumberOfShips);
         }
 
         private void Initialize()
         {
-            for (int i = 0; i < Size; i++)
+            for (int i = 0; i < rows; i++)
             {
-                for (int j = 0; j < Size; j++)
+                for (int j = 0; j < columns; j++)
                 {
                     board[i, j] = EmptyFieldSign;
                 }
@@ -42,22 +63,22 @@ namespace BattleshipGame
         private string Display()
         {
             var boardStringBuilder = new StringBuilder();
-            boardStringBuilder.Append(new string(' ', Size.ToString().Length + 1));
+            boardStringBuilder.Append(new string(' ', rows.ToString().Length + 1));
 
-            for (int i = 0; i < Size; i++)
+            for (int i = 0; i < columns; i++)
             {
                 char columnHeader = (char)('A' + (i % 26));
                 boardStringBuilder.Append(columnHeader).Append(' ');
             }
             boardStringBuilder.Append(Environment.NewLine);
 
-            for (int i = 0; i < Size; i++)
+            for (int i = 0; i < rows; i++)
             {
                 int rowHeader = i + 1;
-                int initialSpaces = Size.ToString().Length - rowHeader.ToString().Length;
+                int initialSpaces = rows.ToString().Length - rowHeader.ToString().Length;
                 boardStringBuilder.Append(new string(' ', initialSpaces)).Append(rowHeader).Append(' ');
 
-                for (int j = 0; j < Size; j++)
+                for (int j = 0; j < columns; j++)
                 {
                     boardStringBuilder.Append(board[i, j]).Append(' ');
                 }
@@ -81,27 +102,38 @@ namespace BattleshipGame
             return false;
         }
 
-        public void CreateShips()
+        private void CreateShips(Dictionary<int, int>  lengthAndNumberOfShips)
         {
-            // TODO: Make private
-            // TODO: Create multiple ships
-            CreateShip(4);
+            foreach (var shipData in lengthAndNumberOfShips)
+            {
+                for (int i = 0; i < shipData.Value; i++)
+                {
+                    CreateShip(shipData.Key);
+                }
+            }
         }
 
         private void CreateShip(int shipLength)
         {
+            int counter = 0;
             bool creating = true;
             while (creating)
             {
+                if (counter == rows * columns)
+                {
+                    throw new TimeoutException("Too many ships on the board!");
+                }
+
                 bool isVertical = random.Next(0, 2) == 0;
-                int startRow = random.Next(0, Size - (isVertical ? shipLength : 1) + 1);
-                int startColumn = random.Next(0, Size - (!isVertical ? shipLength : 1) + 1);
+                int startRow = random.Next(0, rows - (isVertical ? shipLength : 1) + 1);
+                int startColumn = random.Next(0, columns - (!isVertical ? shipLength : 1) + 1);
 
                 if (CanPlaceShip(startRow, startColumn, shipLength, isVertical))
                 {
                     PlaceShip(startRow, startColumn, shipLength, isVertical);
                     creating = false;
                 }
+                counter++;
             }
         }
 
@@ -129,7 +161,7 @@ namespace BattleshipGame
                     int surroundingRow = row + i;
                     int surroundingColumn = column + j;
 
-                    if (surroundingRow >= 0 && surroundingRow < Size && surroundingColumn >= 0 && surroundingColumn < Size)
+                    if (surroundingRow >= 0 && surroundingRow < rows && surroundingColumn >= 0 && surroundingColumn < columns)
                     {
                         if (FieldIsTaken((surroundingRow, surroundingColumn)))
                         {
@@ -152,8 +184,7 @@ namespace BattleshipGame
                 shipFields.Add((row, column));
                 board[row, column] = 'S'; // TODO: Delete after tests.
             }
-            var ship = new Ship(shipLength, shipFields);
-            ships.Add(ship);
+            ships.Add(new Ship(shipLength, shipFields));
         }
 
         private Ship? GetShipByField((int, int) field)

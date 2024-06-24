@@ -1,14 +1,17 @@
 ﻿using BattleshipGame;
 
-var board = new Board();
-board.CreateShips();
-board.CreateShips();
-board.CreateShips();
-board.CreateShips();
+var lengthAndNumberOfShips = new Dictionary<int, int>
+{
+    { (int)ShipMasts.Four, 1 },
+    { (int)ShipMasts.Three, 2 },
+    { (int)ShipMasts.Two, 3 },
+    { (int)ShipMasts.One, 4 }
+};
+
+var board = new Board(lengthAndNumberOfShips);
 Console.WriteLine(board);
 
-
-for (int i = 0; i < 10; i++)
+/*for (int i = 0; i < 10; i++)
 {
     Console.Write("Enter a column letter (A-J): ");
     var columnLetter = Console.ReadLine();
@@ -24,22 +27,4 @@ for (int i = 0; i < 10; i++)
     }
 
     Console.WriteLine(board);
-}
-
-
-
-/*var takenFields = new HashSet<(int, int)>();
-takenFields.Add((0, 0));
-takenFields.Add((1, 0));
-
-var ship = new Ship(4, takenFields);
-
-var a = ship.GetTakenFields();
-a = new HashSet<(int, int)>();
-a.Add((1, 1));
-
-
-foreach (var field in ship.GetTakenFields())
-{
-    Console.WriteLine(field);
 }*/
