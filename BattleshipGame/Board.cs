@@ -15,6 +15,7 @@ namespace BattleshipGame
         private readonly int rows;
         private readonly int columns;
 
+        private int sunkenShips = 0;
         private const char EmptyFieldSign = '.';
         private readonly Random random = new();
         private readonly List<Ship> ships = new();
@@ -182,7 +183,6 @@ namespace BattleshipGame
                 int column = startColumn + (!isVertical ? i : 0);
 
                 shipFields.Add((row, column));
-                board[row, column] = 'S'; // TODO: Delete after tests.
             }
             ships.Add(new Ship(shipLength, shipFields));
         }
@@ -207,9 +207,15 @@ namespace BattleshipGame
             int columnIndex = column - 65;
             int rowIndex = row - 1;
 
-            if (board[rowIndex, columnIndex] != EmptyFieldSign && board[rowIndex, columnIndex] != 'S') // TODO: After tests delete second condition.
+            if (columnIndex >= columns || rowIndex >= rows)
             {
-                Console.WriteLine("This field has been selected before!");
+                Console.WriteLine("The board has no such field!" + Environment.NewLine);
+                return false;
+            }
+
+            if (board[rowIndex, columnIndex] != EmptyFieldSign)
+            {
+                Console.WriteLine("This field has been selected before!" + Environment.NewLine);
                 return false;
             }
 
@@ -226,17 +232,26 @@ namespace BattleshipGame
                     {
                         board[shipField.Item1, shipField.Item2] = (char)ShotSign.Sunk;
                     }
+                    sunkenShips++;
+                    Console.WriteLine("You have just sank the ship." + Environment.NewLine);
                 }
                 else
                 {
                     board[rowIndex, columnIndex] = (char)ShotSign.Hit;
+                    Console.WriteLine("You have just hit." + Environment.NewLine);
                 }
             }
             else
             {
                 board[rowIndex, columnIndex] = (char)ShotSign.Miss;
+                Console.WriteLine("You have just missed." + Environment.NewLine);
             }
             return true;
+        }
+
+        public bool GameOver()
+        {
+            return sunkenShips == ships.Count;
         }
     }
 }
